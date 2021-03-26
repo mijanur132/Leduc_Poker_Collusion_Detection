@@ -6,7 +6,11 @@ import numpy as np
 class ColludePlayer(Player):
     def leader_action(self, valid_actions, cards, players, leaderID, victimID,state):
         validactions = state.valid_actions()
-        if self.mycard.rank > 12:
+        leader_card=self.mycard.rank
+        follower_card=players[state.colludFollower].mycard.rank
+        print("leader and follower cards:",leader_card,follower_card)
+
+        if (leader_card > 12 or follower_card>12):
             print("current rank is:", self.mycard.rank, ">12, so Raise")
             print("victims last action:", players[victimID].last_action)
             if players[victimID].last_action == 'F':
