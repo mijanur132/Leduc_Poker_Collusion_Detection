@@ -4,16 +4,12 @@ import numpy as np
 
 class RaisePlayer(Player):
 
-    def select_action(self, valid_actions, state):
-        # if '2R' in valid_actions:
-        #     return '2R'
-        # elif '4R' in valid_actions:
-        #     return '4R'
-        # else:
-        #     return np.random.choice(valid_actions)
-        #
-        validactions = state.valid_actions()
-        if (self.mycard.rank > 12):
+    def select_action(self, validactions, state):
+        cards=state.cards
+        print("cards at raise Player:",cards)
+        board_card=cards[-1]
+        print("board_card",board_card.rank)
+        if (self.mycard.rank > 12 or self.mycard.rank==board_card.rank):
             print("raise player current rank is:", self.mycard.rank, ">12, so Raise")
             if '2R' in validactions:
                 action = '2R'

@@ -1,8 +1,9 @@
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name,init_amount=100):
         self.name = name
         self.bets = 1
+        self.amount=init_amount
         self.folded = False
         self.raised = False
         self.played_current_round=0
@@ -13,7 +14,8 @@ class Player:
         self.mycard=0
 
     def __repr__(self):
-        return self.name
+        return f"Name:{self.name} Amount: {self.amount}"
+        #return self.name
         # return f"Name:{self.name} Bets: {self.bets} Folded: {self.folded}"
 
     def __eq__(self, other):
