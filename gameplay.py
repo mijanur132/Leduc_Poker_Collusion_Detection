@@ -34,6 +34,7 @@ def play_game(players):
 
     state = State(all_combos[card], len(players), eval, players)
     colludeStarterID=0
+    colludeFollowerID=0
     victimID=0
     action=0
 
@@ -44,11 +45,15 @@ def play_game(players):
         #print(i)
         if players[i].collude_starter == 1:  # if current player is colluding palyer
             colludeStarterID=i
+            state.colludLeader=i
             print("Collude Starter/Leader ID:",i)
         if players[i].collude_follower == 1:  # if current player is colluding palyer
+            colludeFollowerID=i
+            state.colludFollower=i
             print("Collude follower ID:",i)
         if players[i].victim == 1:  # if current player is colluding palyer
             victimID=i
+            state.victim=i
             print("victim ID:", i)
     # do something
 
@@ -59,36 +64,14 @@ def play_game(players):
         if not curr_player.folded:
             curr_player.played_current_round = 1
             if curr_player.collude_starter == 1:
-                action=curr_player.leader_action(state.valid_actions, cards, players,colludeStarterID, victimID, state)
-                '''
-                if curr_player.mycard.rank==14:
-                    print("current rank is:", cards[0].rank, "so Raise")
-                    print("victims last action:",players[victimID].last_action)
-                    if players[victimID].last_action=='F':
-                        print('victim folded: dont raise-->')
-                        action='C'
-                    else:
-                        if '2R' in validactions :
-                            action='2R'
-                        elif '4R' in validactions:
-                            action='4R'
-                        else:
-                            action= 'C'
-                else:
-                    action = curr_player.select_action(state.valid_actions(), state.get_current_state())
-                '''
+                action=curr_player.leader_action(state.valid_actions(curr_player), cards, players,colludeStarterID, victimID, state)
 
             if curr_player.collude_follower==1:
-                action = curr_player.follower_action(state.valid_actions, cards, players, colludeStarterID, state)
-                '''
-                if players[colludeStarterID].played_current_round==1:
-                    print("collusion: copy leaders action...")
-                    action=players[colludeStarterID].last_action
-                else:
-                    action = curr_player.select_action(state.valid_actions(), state.get_current_state())
-                    '''
+                #action = curr_player.follower_action(state.valid_actions(curr_player), cards, players, colludeStarterID, state)
+                action = curr_player.leader_action(state.valid_actions(curr_player), cards, players, colludeStarterID,victimID,state)
+
             if curr_player.collude_starter==0 and curr_player.collude_follower==0:
-                action = curr_player.select_action(state.valid_actions(), state.get_current_state())
+                action = curr_player.select_action(state.valid_actions(curr_player), state)
 
 
             curr_player.last_action=action
@@ -102,8 +85,9 @@ def play_game(players):
 
 
     payout = state.utility()
-    print('*' * 100)
-    print('Payout', payout)
+    print('*' * 50)
+    #print('Payout', payout)
+    print('Current Amounts', [p.amount for p in players])
     winners = np.argwhere(payout == np.amax(payout)).flatten().tolist()
     # winners
     # print(winners)
@@ -135,7 +119,13 @@ def play_multiple_rotations(players, num_rotations=None):
         print('-------- Rotation', rotation, '--------')
         current_rot = rotate(players, rotation)
         print('Current in-game positions', current_rot, '\n')
-        winners = play_game(current_rot)
+
+        #winners = play_game(current_rot)
+        if all(x > 1 for x in [p.amount for p in current_rot]):
+            winners = play_game(current_rot)
+        else:
+            break
+
         # print('WINNERS', winners)
         for winner in winners:
             rotation_winners[winner] += 1
@@ -143,30 +133,66 @@ def play_multiple_rotations(players, num_rotations=None):
             player.bets = 1
             player.folded = False
             player.raised = False
-    print('Rotation Winners:', rotation_winners)
+    #print('Rotation Winners:', rotation_winners)
     return rotation_winners
 
 
-def play_multiple_games(players, num_games=1, seed=42):
-    total_games_winners = {}
-    for player in players:
-        if player.name not in total_games_winners:
-            total_games_winners[player.name] = 0
+def play_multiple_games(players, seed=42):
+
     random.seed(seed)
-    for game in range(num_games):
-        print('-------- Game', game, '--------')
+    keep_playing=True
+    game_count=0
+    looser={}
+    while keep_playing:
+        game_count=game_count+1
+        print('-------- Game', game_count, '--------')
         random.shuffle(players)
         print('Initial game positions: ', players, '\n')
-        rotation_winners = play_multiple_rotations(players)
-        for player_name in total_games_winners:
-            total_games_winners[player_name] += rotation_winners[player_name]
-        print()
-    print('Final Win Count: ', total_games_winners)
+        #rotation_winners = play_multiple_rotations(players)
+        if all(x > 1 for x in [p.amount for p in players]):
+            rotation_winners = play_multiple_rotations(players)
+        else:
+            keep_playing=False
+            print('Final game positions: ', players, '\n')
+            for p in players:
+                if p.amount<=1:
+                    looser[p.name]=+1
+
+            return(looser,players)
 
 
-#players = [RandomPlayer('Random'), RaisePlayer('Raise'), CallPlayer('Call')]
-players = [ColludePlayer('leader'), RaisePlayer('victim'), ColludePlayer('follower')]
-players[0].collude_starter=1   #player 0 is the player who is being followed
-players[1].victim=1 # player being cheated/colluded out
-players[2].collude_follower=1  #player 2 copy player 0's action
-play_multiple_games(players, 50)
+
+def play_tournament(num_matches=100, collusion=False):
+    looser_total={}
+    amount_total={}
+    for i in range(num_matches):
+        print('x' * 200)
+        print("Match No:",i)
+        #players = [RandomPlayer('Random'), RaisePlayer('Raise'), CallPlayer('Call')]
+        #players = [ColludePlayer('leader'), RaisePlayer('victim'), ColludePlayer('follower')]
+
+        if collusion==False:
+            players = [RaisePlayer('leader'), RaisePlayer('victim'), RaisePlayer('follower')]
+            players[0].collude_starter=0   #player 0 is the player who is being followed
+            players[1].victim=0 # player being cheated/colluded out
+            players[2].collude_follower=0  #player 2 copy player 0's action
+        else:
+            players = [ColludePlayer('leader'), RaisePlayer('victim'), ColludePlayer('follower')]
+            players[0].collude_starter = 1  # player 0 is the player who is being followed
+            players[1].victim = 1  # player being cheated/colluded out
+            players[2].collude_follower = 1  # player 2 copy player 0's action
+        looser,players=play_multiple_games(players)
+        print("looser:",looser)
+        for keys in looser:
+            looser_total[keys]=looser_total[keys]+1 if keys in looser_total else 1
+        for p in players:
+            amount_total[p.name]=amount_total[p.name]+p.amount if p.name in amount_total else p.amount
+
+        print("looser_total",looser_total, "amount_total:", amount_total, amount_total['leader']+amount_total['follower'])
+
+
+def main():
+    play_tournament()
+
+if __name__ == "__main__":
+    main()

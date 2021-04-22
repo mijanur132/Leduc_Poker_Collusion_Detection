@@ -16,6 +16,10 @@ class State:
         self.round = 0
         self.turn = 0
         self.terminal = False
+                                #for collusion play
+        self.colludLeader=0
+        self.colludFollower=0
+        self.victim=0
 
     def __repr__(self):
         return f"{self.history[:self.round + 1]}"
@@ -78,31 +82,31 @@ class State:
 
     def is_terminal(self):
         num_folded = sum([p.folded for p in self.players])
-        print("num folded:",num_folded)
+       # print("num folded:",num_folded)
         if num_folded == self.num_players - 1:
-            print("Terminal because,", num_folded, " equals num_players-1. Mean everyone folded")
+          #  print("Terminal because,", num_folded, " equals num_players-1. Mean everyone folded")
             return True
 
         num_actions = len(self.history[self.round])
         fold_actions = self.history[self.round].count('F')
 
         min_actions = self.num_players - (num_folded - fold_actions)#For a round when a folding happens, the folding will count towerd total action
-        print('Num actions:', num_actions, ' FOLD ACTIONS:', fold_actions," min actions:", min_actions)
+        #print('Num actions:', num_actions, ' FOLD ACTIONS:', fold_actions," min actions:", min_actions)
         max_bet = max([p for p in self.players if p.folded is False],
                       key=lambda k: k.bets)  #which player has the max bet
-        print("max_bet_player:", max_bet)
+        #print("max_bet_player:", max_bet)
         end_round = True
         for player in self.players:
             if not player.folded:
-                print("player<max_bet",player<max_bet, " player:",player)
+               # print("player<max_bet",player<max_bet, " player:",player)
                 if player < max_bet:
-                    print("Not end round, there are players, max bet is not covered")
+                  #  print("Not end round, there are players, max bet is not covered")
                     end_round = False
 
         if num_actions >= min_actions and end_round:  #at least all active players should take actions even if end round
-            print("End round")
+           # print("End round")
             if self.round == self.num_rounds - 1:
-                print("Terminate cause, self.round:", self.round, " is equal to (self.num_rounds-1)=", self.num_rounds-1, )
+               # print("Terminate cause, self.round:", self.round, " is equal to (self.num_rounds-1)=", self.num_rounds-1, )
                 return True
             else:
                 self.round += 1
@@ -147,6 +151,9 @@ class State:
         print("payoffs:",payoffs)
         for w in winners:
             payoffs[w] += payoff
+        # Keep track of amount with player
+        for idx, p in enumerate(self.players):
+            p.amount += payoffs[idx]
         print("updaetd payoffs",payoffs)
         return np.array(payoffs)
 
@@ -178,7 +185,7 @@ class Leduc(State):
 
         return new_state
 
-    def valid_actions(self):
+    def valid_actions(self,curr_player):
         num_raises_so_far = sum([p.raised for p in self.players])
 
         if num_raises_so_far == self.num_active_players:
@@ -188,6 +195,33 @@ class Leduc(State):
                 return ['F', 'C', '2R']
             else:
                 return ['F', 'C', '4R']
+
+    # def valid_actions(self, curr_player, num_raises_allowed=2):
+    #     # @TODO: What if the player has no money - then need to wait till end of round to see if they won anything.
+    #     # Right now the player is just folding if they don't have enough money.
+    #     num_raises_so_far = sum([p.raised for p in self.players])
+    #     call_size = max(self.players).bets - curr_player.bets
+    #
+    #     if num_raises_so_far == num_raises_allowed:
+    #         if curr_player.amount - curr_player.bets >= call_size:
+    #             return ['F', 'C']
+    #         else:
+    #             return ['F']
+    #     else:
+    #         if self.round == 0:
+    #             if curr_player.amount - curr_player.bets - call_size >= 2:
+    #                 return ['F', 'C', '2R']
+    #             elif curr_player.amount - curr_player.bets >= call_size:
+    #                 return ['F', 'C']
+    #             else:
+    #                 return ['F']
+    #         else:
+    #             if curr_player.amount - curr_player.bets - call_size >= 4:
+    #                 return ['F', 'C', '4R']
+    #             elif curr_player.amount - curr_player.bets >= call_size:
+    #                 return ['F', 'C']
+    #             else:
+    #                 return ['F']
 
     def get_current_state(self):
         current_state = {'players':self.players,

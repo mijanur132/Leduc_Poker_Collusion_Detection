@@ -4,10 +4,10 @@ def kuhn_eval(card, public):
 
 def leduc_eval(hole_card, board):
     cards = [hole_card] + board
-    print("leduc eval:",cards)
-    print("cards.count(hole_card)",cards.count(hole_card))
-    print("hole_card.rank", hole_card.rank)
-    print("max(cards).rank, min(cards).rank)",max(cards).rank , min(cards).rank)
+    #print("leduc eval:",cards)
+    #print("cards.count(hole_card)",cards.count(hole_card))
+    #print("hole_card.rank", hole_card.rank)
+    #print("max(cards).rank, min(cards).rank)",max(cards).rank , min(cards).rank)
 
 
     if cards.count(hole_card) > 1:
